@@ -39,10 +39,10 @@ update : Msg -> Model -> ( Model, Modal )
 update msg model =
     case model.selectedFruit of
         Just selected ->
-            ( case msg of
+            case msg of
                 UpvoteFruit fruitName ->
-                    { model
-                        | fruits =
+                    let
+                        updatedFruits =
                             List.map
                                 (\fruit ->
                                     if fruit.name == fruitName then
@@ -51,19 +51,20 @@ update msg model =
                                         fruit
                                 )
                                 model.fruits
-                    }
+                    in
+                        ( { model | fruits = updatedFruits }
+                        , makeModal selected updatedFruits
+                        )
 
                 ExitDetails ->
-                    { model | selectedFruit = Nothing }
+                    ( { model | selectedFruit = Nothing }
+                    , Closed
+                    )
 
                 _ ->
-                    model
-            , model.fruits
-                |> List.filter ((==) selected << .name)
-                |> List.head
-                |> Maybe.map Open
-                |> Maybe.withDefault Closed
-            )
+                    ( model
+                    , makeModal selected model.fruits
+                    )
 
         Nothing ->
             ( case msg of
@@ -74,6 +75,15 @@ update msg model =
                     model
             , Closed
             )
+
+
+makeModal : String -> List { votes : Int, name : String } -> Modal
+makeModal selected fruits =
+    fruits
+        |> List.filter ((==) selected << .name)
+        |> List.head
+        |> Maybe.map Open
+        |> Maybe.withDefault Closed
 
 
 view : { orderFruit : String -> msg, toMsg : Msg -> msg } -> Model -> Html msg
