@@ -1,6 +1,6 @@
 module Main exposing (..)
 
-import Dashboard exposing (Fruit)
+import Dashboard exposing (Fruit, Msg(..))
 import Dialog
 import Html exposing (..)
 import Html.Attributes exposing (class)
@@ -64,49 +64,46 @@ update msg model =
 view : Model -> Html Msg
 view model =
     case model.page of
-        Dashboard modelDashboard ->
-            Dashboard.view modelDashboard
-                (\msgs dashboardState ->
-                    div [ class "page" ]
-                        [ div [ class "dashboard" ]
-                            [ h1 [] [ text "Fruits" ]
-                            , ol []
-                                (List.map
-                                    (\fruit ->
-                                        div []
-                                            [ Html.map DashboardMsg (viewFruit msgs fruit)
-                                            , button [ onClick (ToOrderFruit fruit.name) ] [ text "Order" ]
-                                            ]
+        Dashboard dashboardModel ->
+            div [ class "page" ]
+                [ div [ class "dashboard" ]
+                    [ h1 [] [ text "Fruits" ]
+                    , ol []
+                        (List.map
+                            (\fruit ->
+                                div []
+                                    [ Html.map DashboardMsg (viewFruit fruit)
+                                    , button [ onClick (ToOrderFruit fruit.name) ] [ text "Order" ]
+                                    ]
+                            )
+                            dashboardModel.fruits
+                        )
+                    ]
+                , dashboardModel.selectedFruit
+                    |> Maybe.andThen
+                        (\selectedName ->
+                            dashboardModel.fruits
+                                |> List.filter (\fruit -> fruit.name == selectedName)
+                                |> List.head
+                        )
+                    |> Maybe.map
+                        (\fruit ->
+                            { closeMessage = Just ExitDetails
+                            , body =
+                                Just
+                                    (div []
+                                        [ viewFruit fruit
+                                        , button [ onClick (UpvoteFruit fruit.name) ] [ text "Upvote" ]
+                                        ]
                                     )
-                                    dashboardState.fruits
-                                )
-                            ]
-                        , dashboardState.selectedFruit
-                            |> Maybe.andThen
-                                (\selectedName ->
-                                    dashboardState.fruits
-                                        |> List.filter (\fruit -> fruit.name == selectedName)
-                                        |> List.head
-                                )
-                            |> Maybe.map
-                                (\fruit ->
-                                    { closeMessage = Just msgs.exitDetails
-                                    , body =
-                                        Just
-                                            (div []
-                                                [ viewFruit msgs fruit
-                                                , button [ onClick (msgs.upvoteFruit fruit.name) ] [ text "Upvote" ]
-                                                ]
-                                            )
-                                    , header = Just (h2 [] [ text fruit.name ])
-                                    , footer = Nothing
-                                    , containerClass = Just "fruit-modal"
-                                    }
-                                )
-                            |> Dialog.view
-                            |> Html.map DashboardMsg
-                        ]
-                )
+                            , header = Just (h2 [] [ text fruit.name ])
+                            , footer = Nothing
+                            , containerClass = Just "fruit-modal"
+                            }
+                        )
+                    |> Dialog.view
+                    |> Html.map DashboardMsg
+                ]
 
         OrderFruit modelProfile ->
             div [ class "page" ]
@@ -115,7 +112,7 @@ view model =
                 ]
 
 
-viewFruit : { msgs | seeDetails : String -> Dashboard.Msg } -> Fruit -> Html Dashboard.Msg
-viewFruit msgs fruit =
-    li [ onClick (msgs.seeDetails fruit.name) ]
+viewFruit : Fruit -> Html Dashboard.Msg
+viewFruit fruit =
+    li [ onClick (SeeDetails fruit.name) ]
         [ text (fruit.name ++ " " ++ toString fruit.votes) ]
